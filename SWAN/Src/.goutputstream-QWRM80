@@ -1,0 +1,790 @@
+#include "swancpp.h"
+!
+!     SWAN/SWREAD  file 2 of 2
+!
+!  Contents of this file:
+!     SPROUT: Reading and processing of the user output commands
+!     SWREPS: Reading and processing of the commands defining output points
+!     SWREOQ: Reading and processing of the output requests
+!     SIRAY : Searching the first point on a ray where the depth is DP
+!     SWNMPS
+!     SVARTP
+!     SWBOUN                                                              40.00
+!     BCFILE                                                              40.00
+!     BCWAMN                                                              40.00
+!     BCWW3N
+!     SWBCPT
+!     RETSTP                                                              40.00
+!
+!***********************************************************************
+!                                                                      *
+#ifdef SWAN_MODEL
+      SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV, ng)
+#else
+      SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)                           40.31
+#endif
+!                                                                      *
+!***********************************************************************
+!
+      USE OCPCOMM4                                                        40.41
+      USE SWCOMM3                                                         40.41
+!
+!
+!   --|-----------------------------------------------------------|--
+!     | Delft University of Technology                            |
+!     | Faculty of Civil Engineering                              |
+!     | Environmental Fluid Mechanics Section                     |
+!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
+!     |                                                           |
+!     | Programmers: The SWAN team                                |
+!   --|-----------------------------------------------------------|--
+!
+!
+!     SWAN (Simulating WAves Nearshore); a third generation wave model
+!     Copyright (C) 1993-2019  Delft University of Technology
+!
+!     This program is free software; you can redistribute it and/or
+!     modify it under the terms of the GNU General Public License as
+!     published by the Free Software Foundation; either version 2 of
+!     the License, or (at your option) any later version.
+!
+!     This program is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!     GNU General Public License for more details.
+!
+!     A copy of the GNU General Public License is available at
+!     http://www.gnu.org/copyleft/gpl.html#SEC3
+!     or by writing to the Free Software Foundation, Inc.,
+!     59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+!
+!
+!  0. Authors
+!
+!     30.70: Nico Booij
+!     30.72: IJsbrand Haagsma
+!     30.81: Annette Kieftenburg
+!     30.82: IJsbrand Haagsma
+!     30.90: IJsbrand Haagsma (Equivalence version)
+!     32.02: Roeland Ris & Cor van der Schelde (1D version)
+!     34.01: Jeroen Adema
+!     40.02: IJsbrand Haagsma
+!     40.03: Nico Booij
+!     40.31: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!
+!  1. Updates
+!
+!    100.04, Nov. 92: Filename of plotfile will be given by user
+!     30.70, Nov. 97: Arguments BOTLEV and WATLEV added
+!     32.02, Feb. 98: 1D version introduced
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     30.82, Apr. 98: Removed reference to commons KAART and KAR
+!     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
+!     30.81, Nov. 98: Replaced variable STATUS by IERR (because STATUS is a
+!                     reserved word)
+!     30.81, Jan. 99: Replaced variable FROM by FROM_ (because FROM is a
+!                     reserved word)
+!     34.01, Feb. 99: Introducing STPNOW
+!     40.03, Sep. 00: inconsistency with manual corrected
+!     40.02, Oct. 00: Initialisation of IERR
+!     40.31, Nov. 03: removing POOL construction and HPGL functionality
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!
+!  2. Purpose
+!
+!     Reading and processing of the user output commands
+!
+!  3. Method
+!
+!     If the first characters of the last read command are equal to a
+!     given string (KEYWIS ('STRING')), the keywords and varia-
+!     bles of this command are further read and processed
+!
+!  4. Argument variables
+!
+! i   BOTLEV: Bottom levels                                               30.70
+! i   WATLEV: Water levels                                                30.70
+!
+#ifdef SWAN_MODEL
+      INTEGER, INTENT(IN) :: ng
+#endif
+      REAL    BOTLEV(*)                                                   30.70
+      REAL    WATLEV(*)                                                   30.70
+!
+!  6. Local variables
+!
+!  8. Subroutines used
+!
+!     MSGERR
+!     SWREPS
+!     SWREOQ
+!     STPNOW
+!
+      LOGICAL STPNOW                                                      34.01
+!
+!  9. Subroutines calling
+!
+!     SWREAD
+!
+! 10. Error messages
+!
+!     ---
+!
+! 11. Remarks
+!
+!     ---
+!
+! 12. Structure
+!
+!     ----------------------------------------------------------------
+!             Most of the source code will be clear with the
+!             aid of the user manual, the system documentation
+!             and the additional comments in the source code.
+!     ----------------------------------------------------------------
+!
+! 13. Source text
+!
+      LOGICAL   FOUND
+      LOGICAL   KEYWIS
+      SAVE IENT
+      DATA IENT/0/                                                        40.31 30.81
+      CALL STRACE (IENT,'SPROUT')
+!
+      FOUND = .FALSE.
+!
+!     definition of output point sets
+!
+#ifdef SWAN_MODEL
+      CALL SWREPS ( FOUND, BOTLEV, WATLEV, ng)
+#else
+      CALL SWREPS ( FOUND, BOTLEV, WATLEV )                               40.31
+#endif
+      IF (STPNOW()) RETURN                                                34.01
+      IF (FOUND) RETURN
+!
+!     output requests
+!
+#ifdef SWAN_MODEL
+      CALL SWREOQ ( FOUND, ng)
+#else
+      CALL SWREOQ ( FOUND )                                               40.31 30.90
+#endif
+      IF (STPNOW()) RETURN                                                34.01
+      IF (FOUND) RETURN
+!
+      IF (KEYWIS('SIT') .OR. KEYWIS('PLA')) THEN
+        CALL MSGERR(2,'Keyword SITES is no longer maintained')            40.31
+        GOTO 800                                                          40.31
+      ENDIF
+!
+      IF (KEYWIS ('LIN')) THEN
+        CALL MSGERR(2,'Keyword LINE is no longer maintained')             40.31
+        GOTO 800                                                          40.31
+      ENDIF
+!     -------------------------------------------------------------------
+!     ***** command name not found *****
+      RETURN
+!
+ 800  FOUND = .TRUE.
+      RETURN
+! *   end of subroutine SPROUT *
+      END
+!***********************************************************************
+!                                                                      *
+#ifdef SWAN_MODEL
+      SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV, ng)
+#else
+      SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )                         40.31
+#endif
+!                                                                      *
+!***********************************************************************
+!
+      USE OCPCOMM1                                                        40.41
+      USE OCPCOMM3                                                        40.41
+      USE OCPCOMM4                                                        40.41
+      USE SWCOMM2                                                         40.41
+      USE SWCOMM3                                                         40.41
+      USE SWCOMM4                                                         40.41
+      USE OUTP_DATA                                                       40.31
+      USE M_PARALL                                                        40.31
+      USE SwanGriddata                                                    40.80
+!
+!
+!   --|-----------------------------------------------------------|--
+!     | Delft University of Technology                            |
+!     | Faculty of Civil Engineering                              |
+!     | Environmental Fluid Mechanics Section                     |
+!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
+!     |                                                           |
+!     | Programmers: The SWAN team                                |
+!   --|-----------------------------------------------------------|--
+!
+!
+!     SWAN (Simulating WAves Nearshore); a third generation wave model
+!     Copyright (C) 1993-2019  Delft University of Technology
+!
+!     This program is free software; you can redistribute it and/or
+!     modify it under the terms of the GNU General Public License as
+!     published by the Free Software Foundation; either version 2 of
+!     the License, or (at your option) any later version.
+!
+!     This program is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!     GNU General Public License for more details.
+!
+!     A copy of the GNU General Public License is available at
+!     http://www.gnu.org/copyleft/gpl.html#SEC3
+!     or by writing to the Free Software Foundation, Inc.,
+!     59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+!
+!
+!  0. Authors
+!
+!     30.70, 40.03, 40.13: Nico Booij
+!     30.72: IJsbrand Haagsma
+!     30.81: Annette Kieftenburg
+!     30.82: IJsbrand Haagsma
+!     32.02: Roeland Ris & Cor van der Schelde (1D version)
+!     34.01: Jeroen Adema
+!     40.30: Marcel Zijlema
+!     40.31: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!     40.80: Marcel Zijlema
+!
+!  1. Updates
+!
+!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block with
+!                     two CONTINUE's
+!     30.70, Nov. 97: comm ISO, inquire pointer added to get correct value
+!                     for IADRAY
+!     30.70, Nov. 97: comm ISO, offset origin added in message concerning rays
+!                     declaration INT SIRAY added
+!     30.70, Nov. 97: arguments BOTLEV and WATLEV added
+!     30.72, Feb. 98: Declaration of Argument variables updated
+!     32.02, Feb. 98: 1D version introduced
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     30.82, Apr. 98: removed reference to commons KAART and KAR
+!     30.81, Nov. 98: Replaced variable STATUS by IERR (because STATUS is a
+!                     reserved word)
+!     34.01, Feb. 99: Introducing STPNOW
+!     40.01, Sep. 99: XASM and YASM replace fixed numbers
+!     33.09, Sep. 00: modifications in view of spherical coordinates
+!     40.03, Sep. 00: inconsistency with manual corrected
+!     40.13, Sep. 01: nesting in curvilinear grid: division by 0 prevented
+!     40.30, May  03: introduction distributed-memory approach using MPI
+!     40.31, Dec. 03: removing POOL-mechanism
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!     40.80, Mar. 08: extension to unstructured grids
+!
+!  2. PURPOSE
+!
+!     Reading and processing of the commands defining output points
+!
+!  4. Argument variables (updated 30.72)
+!
+!     BOTLEV: input  bottom levels                                        30.70
+!     WATLEV: input  water levels                                         30.70
+!
+#ifdef SWAN_MODEL
+      INTEGER, INTENT(IN) :: ng
+#endif
+      REAL      BOTLEV(*), WATLEV(*)                                      30.70
+!
+!     FOUND : output  parameter indicating whether command
+!                     being processed is found (value True)
+!                     or not (False)
+!
+      LOGICAL   FOUND
+!
+!     Local variables
+
+      REAL :: XPFR, YPFR, XLENFR, YLENFR                                  40.31
+
+#if defined SWAN_MODEL
+      TYPE(OPSDAT), POINTER :: ROPS
+#else
+      TYPE(OPSDAT), POINTER :: OPSTMP, ROPS                               40.31
+#endif
+
+      TYPE XYPT                                                           40.31
+        REAL                :: X, Y, XQ, YQ
+        TYPE(XYPT), POINTER :: NEXTXY
+      END TYPE XYPT
+
+      TYPE(XYPT), TARGET  :: FRST                                         40.31
+      TYPE(XYPT), POINTER :: CURR, TMP                                    40.31
+
+      INTEGER, ALLOCATABLE :: VM(:)                                       40.80
+      REAL, ALLOCATABLE :: XG(:), YG(:)                                   40.80
+      CHARACTER (LEN=80) :: BASENM                                        40.80
+
+!  8. Subroutines used
+!
+!     command reading routines
+!     (all Ocean Pack)
+
+      LOGICAL :: STPNOW                                                   34.01
+      LOGICAL :: EQREAL ! if True the two (real) arguments are equal      33.09
+
+!  9. Subroutines calling
+!
+!     SPROUT
+!
+! 10. Error messages
+!
+!     ---
+!
+! 13. Source text
+!
+      LOGICAL   PP                                                        30.72
+      INTEGER   IERR, SIRAY                                               30.81 30.72
+      CHARACTER PSNAME*16, STYPE*1, PRNAME*16                             40.31 30.21
+      LOGICAL   KEYWIS, BOTDEP                                            30.70
+      SAVE IENT
+      DATA IENT/0/
+      CALL STRACE (IENT,'SWREPS')
+!
+!   --------------------------------------------------------------------
+!   FRAME   'sname'  [xpfr] [ypfr] [alpfr] [xlenfr] [ylenfr]          &
+!           [mxfr] [myfr]
+!   --------------------------------------------------------------------
+!
+      IF (KEYWIS ('FRA')) THEN
+!
+        IF (ONED) THEN                                                    32.02
+          CALL MSGERR (2,' Illegal keyword (FRA) in combination with'//   32.02
+     &                   ' 1D-computation')                               32.02
+          GOTO 800                                                        32.02
+        ELSE                                                              32.02
+!         ver 30.20: names of input variables changed, order of data changed
+#ifdef SWAN_MODEL
+          ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP)                                40.31
+!          ALLOCATE(OPSDATZ_MOD(ng)%COPS)
+!          ALLOCATE(OPSDATZ_MOD(ng)%FOPS)
+          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
+          IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+          OPSDATZ_MOD(ng)%OPSTMP%PSNAME = PSNAME                                          40.31
+          CALL READXY ('XPFR', 'YPFR', XPFR, YPFR, 'REQ', 0., 0.)         40.31 30.20
+          OPSDATZ_MOD(ng)%OPSTMP%OPR(1) = XPFR                                            40.31
+          OPSDATZ_MOD(ng)%OPSTMP%OPR(2) = YPFR                                            40.31
+          CALL INREAL('ALPFR',ALPK,'REQ',0.)                              30.20
+          IF (KSPHER.GT.0 .AND. .NOT.EQREAL(ALPK,0.)) CALL MSGERR (2,
+     &          '[alpfr] must be 0 with spherical coordinates')           33.09
+          CALL INREAL('XLENFR', XLENFR,'REQ',0.)                          40.31 30.20
+          CALL INREAL('YLENFR', YLENFR,'REQ',0.)                          40.31 30.20
+          OPSDATZ_MOD(ng)%OPSTMP%OPR(3)=XLENFR                                          40.31
+          OPSDATZ_MOD(ng)%OPSTMP%OPR(4)=YLENFR                                          40.31
+          OPSDATZ_MOD(ng)%OPSTMP%OPR(5)=PI2*(ALPK/360.-NINT(ALPK/360.))
+!           ***** the user gives number of meshes along each side *****
+!           ***** program uses the number of points               *****
+          CALL ININTG ('MXFR',MXK,'STA',20)                               30.20
+          CALL ININTG ('MYFR',MYK,'STA',20)                               30.20
+          OPSDATZ_MOD(ng)%OPSTMP%PSTYPE = 'F'                                             40.31
+          OPSDATZ_MOD(ng)%OPSTMP%OPI(1) = MXK+1                                           40.31
+          OPSDATZ_MOD(ng)%OPSTMP%OPI(2) = MYK+1                                           40.31
+          ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP%XP(0))                                          40.31
+          ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP%YP(0))                                          40.31
+          NULLIFY(OPSDATZ_MOD(ng)%OPSTMP%NEXTOPS)                                         40.31
+          IF ( .NOT.LOPS ) THEN                                           40.31
+             OPSDATZ_MOD(ng)%FOPS = OPSDATZ_MOD(ng)%OPSTMP                40.31
+             OPSDATZ_MOD(ng)%COPS => OPSDATZ_MOD(ng)%FOPS                 40.31
+             LOPS = .TRUE.                                                40.31
+          ELSE                                                            40.31
+             OPSDATZ_MOD(ng)%COPS%NEXTOPS => OPSDATZ_MOD(ng)%OPSTMP       40.31
+             OPSDATZ_MOD(ng)%COPS => OPSDATZ_MOD(ng)%OPSTMP               40.31
+          END IF                                                          40.31
+          GOTO 800
+#else
+          ALLOCATE(OPSTMP)                                                40.31
+          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
+          IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+          OPSTMP%PSNAME = PSNAME                                          40.31
+          CALL READXY ('XPFR', 'YPFR', XPFR, YPFR, 'REQ', 0., 0.)         40.31 30.20
+          OPSTMP%OPR(1) = XPFR                                            40.31
+          OPSTMP%OPR(2) = YPFR                                            40.31
+          CALL INREAL('ALPFR',ALPK,'REQ',0.)                              30.20
+          IF (KSPHER.GT.0 .AND. .NOT.EQREAL(ALPK,0.)) CALL MSGERR (2,
+     &          '[alpfr] must be 0 with spherical coordinates')           33.09
+          CALL INREAL('XLENFR', XLENFR,'REQ',0.)                          40.31 30.20
+          CALL INREAL('YLENFR', YLENFR,'REQ',0.)                          40.31 30.20
+          OPSTMP%OPR(3) = XLENFR                                          40.31
+          OPSTMP%OPR(4) = YLENFR                                          40.31
+          OPSTMP%OPR(5) = PI2 * (ALPK/360.-NINT(ALPK/360.))
+!           ***** the user gives number of meshes along each side *****
+!           ***** program uses the number of points               *****
+          CALL ININTG ('MXFR',MXK,'STA',20)                               30.20
+          CALL ININTG ('MYFR',MYK,'STA',20)                               30.20
+          OPSTMP%PSTYPE = 'F'                                             40.31
+          OPSTMP%OPI(1) = MXK+1                                           40.31
+          OPSTMP%OPI(2) = MYK+1                                           40.31
+          ALLOCATE(OPSTMP%XP(0))                                          40.31
+          ALLOCATE(OPSTMP%YP(0))                                          40.31
+          NULLIFY(OPSTMP%NEXTOPS)                                         40.31
+          IF ( .NOT.LOPS ) THEN                                           40.31
+             FOPS = OPSTMP                                                40.31
+             COPS => FOPS                                                 40.31
+             LOPS = .TRUE.                                                40.31
+          ELSE                                                            40.31
+             COPS%NEXTOPS => OPSTMP                                       40.31
+             COPS => OPSTMP                                               40.31
+          END IF                                                          40.31
+          GOTO 800
+#endif
+        ENDIF                                                             32.02
+      ENDIF
+!
+!   ------------------------------------------------------------------
+!   GROUP   'sname'  SUBGRID [ix1] [ix2] [iy1] [iy2]
+!   ------------------------------------------------------------------
+!
+      IF (KEYWIS('GROUP') .OR. KEYWIS ('SUBG')) THEN                      970221
+!
+        IF (ONED) THEN                                                    32.02
+          CALL MSGERR (2,' Illegal keyword (GROUP) in combination'//      32.02
+     &                   ' with 1D-computation')                          32.02
+          GOTO 800                                                        32.02
+        ELSEIF (OPTG.EQ.5) THEN                                           40.80
+          CALL MSGERR(2,
+     &              ' Keyword GROUP not supported in unstructured grid')  40.80
+          GOTO 800                                                        40.80
+        ELSE                                                              32.02
+!         mod 970221: GROUP is introduced as a new command instead of
+!         an option SUBG within the Frame command
+#ifdef SWAN_MODEL
+          ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP)                                40.31
+          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
+          IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+          OPSDATZ_MOD(ng)%OPSTMP%PSNAME = PSNAME                          40.31
+#else
+          ALLOCATE(OPSTMP)                                                40.31
+          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
+          IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+          OPSTMP%PSNAME = PSNAME                                          40.31
+#endif
+          CALL INKEYW ('STA', ' ')
+          CALL IGNORE ('SUBG')                                            970221
+          CALL ININTG ('IX1', IX1, 'REQ', 0)
+          CALL ININTG ('IX2', IX2, 'REQ', 0)
+          CALL ININTG ('IY1', IY1, 'REQ', 0)
+          CALL ININTG ('IY2', IY2, 'REQ', 0)
+          IF (IX1 .LT. 0 .OR. IX2 .GT. MXCGL-1 .OR. IX1 .GT. IX2 .OR.
+     &        IY1 .LT. 0 .OR. IY2 .GT. MYCGL-1 .OR. IY1 .GT. IY2) THEN
+            CALL MSGERR (3, 'Check corners of GROUP (SUBGRID) command')
+            CALL MSGERR (3, ' .........the values should be.........')
+            CALL MSGERR (3, 'ix1<ix2 and both between 0 and MXC')
+            CALL MSGERR (3, 'iy1<iy2 and both between 0 and MYC')
+          ENDIF
+!
+          IF (OPTG .EQ. 3) THEN
+!             *** If the comput grid is curvilinear then the next    ***
+!             *** quantities are stored : 'H' ,FLOAT(IX2), FLOAT(IY2)***
+!             *** FLOAT(IX1) ,FLOAT(IY1) , 0 ,MXK+1 ,MYK+1           ***
+!              *** Here frame type H is introduce, means that regular***
+!              *** frame is required from a curvilinear compt. grid  ***
+#ifdef SWAN_MODEL
+            OPSDATZ_MOD(ng)%OPSTMP%PSTYPE = 'H'                                           40.31
+            MXK = IX2-IX1
+            MYK = IY2-IY1
+            OPSDATZ_MOD(ng)%OPSTMP%OPR(1) = FLOAT(IX2)                                    40.31
+            OPSDATZ_MOD(ng)%OPSTMP%OPR(2) = FLOAT(IY2)                                    40.31
+            OPSDATZ_MOD(ng)%OPSTMP%OPR(3) = FLOAT(IX1)                                    40.31
+            OPSDATZ_MOD(ng)%OPSTMP%OPR(4) = FLOAT(IY1)                                    40.31
+            OPSDATZ_MOD(ng)%OPSTMP%OPR(5) = 0.                                            40.31
+            OPSDATZ_MOD(ng)%OPSTMP%OPI(1) = MXK+1                                         40.31
+            OPSDATZ_MOD(ng)%OPSTMP%OPI(2) = MYK+1                                         40.31
+          ELSE IF (OPTG .EQ. 1) THEN
+            OPSDATZ_MOD(ng)%OPSTMP%PSTYPE = 'F'                                           40.31
+            IF (IX1.NE.IX2) THEN
+              OPSDATZ_MOD(ng)%OPSTMP%OPR(3) = (IX2-IX1)*DX                                40.31
+            ELSE
+              OPSDATZ_MOD(ng)%OPSTMP%OPR(3) = 0.01                                        40.31
+            ENDIF
+            IF (IY1.NE.IY2) THEN
+              OPSDATZ_MOD(ng)%OPSTMP%OPR(4) = (IY2-IY1)*DY                                40.31
+            ELSE
+              OPSDATZ_MOD(ng)%OPSTMP%OPR(4) = 0.01                                        40.31
+            ENDIF
+            OPSDATZ_MOD(ng)%OPSTMP%OPR(1) = XPC + IX1*DX*COSPC -        &
+     &                                      IY1*DY*SINPC                 40.31
+            OPSDATZ_MOD(ng)%OPSTMP%OPR(2) = YPC + IX1*DX*SINPC +        &
+     &                                      IY1*DY*COSPC                 40.31
+            OPSDATZ_MOD(ng)%OPSTMP%OPR(5) = ALPC                                          40.31
+            MXK = IX2-IX1
+            MYK = IY2-IY1
+            OPSDATZ_MOD(ng)%OPSTMP%OPI(1) = MXK+1                                         40.31
+            OPSDATZ_MOD(ng)%OPSTMP%OPI(2) = MYK+1                         40.31
+            IF (ITEST .GE. 20 .OR. INTES .GE. 10)                       &
+     &        WRITE (PRINTF, 6020) (OPSDATZ_MOD(ng)%OPSTMP%OPR(II),     & 
+     &               II=2,6)                                             40.31
+ 6020       FORMAT (' Subgrid parms.', 6(1X,E12.4))
+          ENDIF
+          ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP%XP(0))                          40.31
+          ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP%YP(0))                          40.31
+          NULLIFY(OPSDATZ_MOD(ng)%OPSTMP%NEXTOPS)                         40.31
+          IF ( .NOT.LOPS ) THEN                                           40.31
+             OPSDATZ_MOD(ng)%FOPS = OPSDATZ_MOD(ng)%OPSTMP                40.31
+             OPSDATZ_MOD(ng)%COPS => OPSDATZ_MOD(ng)%FOPS                 40.31
+             LOPS = .TRUE.                                                40.31
+          ELSE                                                            40.31
+             OPSDATZ_MOD(ng)%COPS%NEXTOPS => OPSDATZ_MOD(ng)%OPSTMP       40.31
+             OPSDATZ_MOD(ng)%COPS => OPSDATZ_MOD(ng)%OPSTMP               40.31
+          END IF                                                          40.31
+#else
+            OPSTMP%PSTYPE = 'H'                                           40.31
+            MXK = IX2-IX1
+            MYK = IY2-IY1
+            OPSTMP%OPR(1) = FLOAT(IX2)                                    40.31
+            OPSTMP%OPR(2) = FLOAT(IY2)                                    40.31
+            OPSTMP%OPR(3) = FLOAT(IX1)                                    40.31
+            OPSTMP%OPR(4) = FLOAT(IY1)                                    40.31
+            OPSTMP%OPR(5) = 0.                                            40.31
+            OPSTMP%OPI(1) = MXK+1                                         40.31
+            OPSTMP%OPI(2) = MYK+1                                         40.31
+          ELSE IF (OPTG .EQ. 1) THEN
+            OPSTMP%PSTYPE = 'F'                                           40.31
+            IF (IX1.NE.IX2) THEN
+              OPSTMP%OPR(3) = (IX2-IX1)*DX                                40.31
+            ELSE
+              OPSTMP%OPR(3) = 0.01                                        40.31
+            ENDIF
+            IF (IY1.NE.IY2) THEN
+              OPSTMP%OPR(4) = (IY2-IY1)*DY                                40.31
+            ELSE
+              OPSTMP%OPR(4) = 0.01                                        40.31
+            ENDIF
+            OPSTMP%OPR(1) = XPC + IX1*DX*COSPC - IY1*DY*SINPC             40.31
+            OPSTMP%OPR(2) = YPC + IX1*DX*SINPC + IY1*DY*COSPC             40.31
+            OPSTMP%OPR(5) = ALPC                                          40.31
+            MXK = IX2-IX1
+            MYK = IY2-IY1
+            OPSTMP%OPI(1) = MXK+1                                         40.31
+            OPSTMP%OPI(2) = MYK+1                                         40.31
+            IF (ITEST .GE. 20 .OR. INTES .GE. 10)
+     &        WRITE (PRINTF, 6020) (OPSTMP%OPR(II), II=2,6)               40.31
+ 6020       FORMAT (' Subgrid parms.', 6(1X,E12.4))
+          ENDIF
+          ALLOCATE(OPSTMP%XP(0))                                          40.31
+          ALLOCATE(OPSTMP%YP(0))                                          40.31
+          NULLIFY(OPSTMP%NEXTOPS)                                         40.31
+          IF ( .NOT.LOPS ) THEN                                           40.31
+             FOPS = OPSTMP                                                40.31
+             COPS => FOPS                                                 40.31
+             LOPS = .TRUE.                                                40.31
+          ELSE                                                            40.31
+             COPS%NEXTOPS => OPSTMP                                       40.31
+             COPS => OPSTMP                                               40.31
+          END IF                                                          40.31
+#endif
+          GOTO 800
+        ENDIF                                                             32.01
+      ENDIF
+!
+!   ------------------------------------------------------------------
+!   CURVE   'sname'  [xp1] [yp1]   < [int]  [xp]  [yp] >
+!   ------------------------------------------------------------------
+!
+
+      IF (KEYWIS ('CURV')) THEN
+#ifdef SWAN_MODEL
+        ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP)                                  40.31
+        CALL INCSTR('SNAME',PSNAME,'REQ',' ')
+        IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+        OPSDATZ_MOD(ng)%OPSTMP%PSNAME = PSNAME                            40.31
+        OPSDATZ_MOD(ng)%OPSTMP%PSTYPE = 'C'                               40.31
+        MIP  = 0
+        OPSDATZ_MOD(ng)%OPSTMP%MIP = MIP                                  40.31
+#else
+        ALLOCATE(OPSTMP)                                                  40.31
+        CALL INCSTR('SNAME',PSNAME,'REQ',' ')
+        IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+        OPSTMP%PSNAME = PSNAME                                            40.31
+        OPSTMP%PSTYPE = 'C'                                               40.31
+        MIP  = 0
+        OPSTMP%MIP = MIP                                                  40.31
+#endif
+!       ***** first point of a curve *****
+   30   CALL NWLINE
+        IF (STPNOW()) RETURN                                              34.01
+        CALL READXY ('XP1', 'YP1', XP, YP, 'REQ', 0., 0.)
+        FRST%X = XP                                                       40.31
+        FRST%Y = YP                                                       40.31
+        NULLIFY(FRST%NEXTXY)                                              40.31
+        CURR => FRST                                                      40.31
+        MIP = 1
+!       ***** interval and next corner point *****
+   33   CALL ININTG ('INT',INTV,'REP',-1)
+        IF (INTV .NE. -1) THEN
+          IF (INTV .LE. 0) THEN
+             CALL MSGERR (2,'INT is negative or zero')
+             INTV = 1
+          ENDIF
+          XP1 = XP
+          YP1 = YP
+          CALL READXY ('XP', 'YP', XP, YP, 'REQ', 0., 0.)                 40.03
+          IF (ITEST .GE. 200 .OR. INTES .GE. 20) THEN                     30.21
+            WRITE(PRINTF, 31) PSNAME
+   31       FORMAT ('COORDINATES OF OUTPUT POINTS FOR CURVE  : ', A)
+          ENDIF
+          DO 36  JJ=1,INTV
+            MIP = MIP+1
+            ALLOCATE(TMP)                                                 40.31
+            TMP%X = XP1+REAL(JJ)*(XP-XP1)/REAL(INTV)                      40.31
+            TMP%Y = YP1+REAL(JJ)*(YP-YP1)/REAL(INTV)                      40.31
+            NULLIFY(TMP%NEXTXY)                                           40.31
+            CURR%NEXTXY => TMP                                            40.31
+            CURR => TMP                                                   40.31
+   36     CONTINUE
+          GOTO 33
+        ENDIF
+#ifdef SWAN_MODEL
+        ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP%XP(MIP))                          40.31
+        ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP%YP(MIP))                          40.31
+!        ALLOCATE(OPSDATZ_MOD(ng)%COPS)
+!        ALLOCATE(OPSDATZ_MOD(ng)%FOPS)
+        CURR => FRST                                                      40.31
+        DO JJ = 1, MIP                                                    40.31
+           OPSDATZ_MOD(ng)%OPSTMP%XP(JJ) = CURR%X                         40.31
+           OPSDATZ_MOD(ng)%OPSTMP%YP(JJ) = CURR%Y                         40.31
+           IF (ITEST .GE. 200 .OR. INTES .GE. 50) THEN                    40.31
+              WRITE(PRINTF,32) JJ, CURR%X, CURR%Y                         40.31
+   32         FORMAT(' POINT(',I4,')','  (IX,IY) -> ',2F10.2)             40.31
+           ENDIF                                                          40.31
+           CURR => CURR%NEXTXY                                            40.31
+        END DO                                                            40.31
+        DEALLOCATE(TMP)                                                   40.31
+!       ***** store number of points of the curve *****
+        OPSDATZ_MOD(ng)%OPSTMP%MIP = MIP                                  40.31
+        IF (MIP .EQ. 0) CALL MSGERR(1,'No output points found')
+        NULLIFY(OPSDATZ_MOD(ng)%OPSTMP%NEXTOPS)                           40.31
+        IF ( .NOT.LOPS ) THEN                                             40.31
+           OPSDATZ_MOD(ng)%FOPS = OPSDATZ_MOD(ng)%OPSTMP                  40.31
+           OPSDATZ_MOD(ng)%COPS => OPSDATZ_MOD(ng)%FOPS                   40.31
+           LOPS = .TRUE.                                                  40.31
+        ELSE                                                              40.31
+           OPSDATZ_MOD(ng)%COPS%NEXTOPS => OPSDATZ_MOD(ng)%OPSTMP         40.31
+           OPSDATZ_MOD(ng)%COPS => OPSDATZ_MOD(ng)%OPSTMP                 40.31
+        END IF                                                            40.31
+#else
+        ALLOCATE(OPSTMP%XP(MIP))                                          40.31
+        ALLOCATE(OPSTMP%YP(MIP))                                          40.31
+        CURR => FRST                                                      40.31
+        DO JJ = 1, MIP                                                    40.31
+           OPSTMP%XP(JJ) = CURR%X                                         40.31
+           OPSTMP%YP(JJ) = CURR%Y                                         40.31
+           IF (ITEST .GE. 200 .OR. INTES .GE. 50) THEN                    40.31
+              WRITE(PRINTF,32) JJ, CURR%X, CURR%Y                         40.31
+   32         FORMAT(' POINT(',I4,')','  (IX,IY) -> ',2F10.2)             40.31
+           ENDIF                                                          40.31
+           CURR => CURR%NEXTXY                                            40.31
+        END DO                                                            40.31
+        DEALLOCATE(TMP)                                                   40.31
+!       ***** store number of points of the curve *****
+        OPSTMP%MIP = MIP                                                  40.31
+        IF (MIP .EQ. 0) CALL MSGERR(1,'No output points found')
+        NULLIFY(OPSTMP%NEXTOPS)                                           40.31
+        IF ( .NOT.LOPS ) THEN                                             40.31
+           FOPS = OPSTMP                                                  40.31
+           COPS => FOPS                                                   40.31
+           LOPS = .TRUE.                                                  40.31
+        ELSE                                                              40.31
+           COPS%NEXTOPS => OPSTMP                                         40.31
+           COPS => OPSTMP                                                 40.31
+        END IF                                                            40.31
+#endif
+        GOTO 800
+      ENDIF
+!
+!   ------------------------------------------------------------------
+!   POINTS  'sname'  < [xp]  [yp]  >     |    FILE 'fname'
+!   ------------------------------------------------------------------
+!
+      IF (KEYWIS ('POIN')) THEN
+#ifdef SWAN_MODEL
+        ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP)                                                  40.31
+        CALL INCSTR('SNAME',PSNAME,'REQ',' ')
+        IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+        OPSDATZ_MOD(ng)%OPSTMP%PSNAME = PSNAME                                            40.31
+        OPSDATZ_MOD(ng)%OPSTMP%PSTYPE = 'P'                                               40.31
+        MIP  = 0
+        OPSDATZ_MOD(ng)%OPSTMP%MIP = MIP                                                  40.31
+#else
+        ALLOCATE(OPSTMP)                                                  40.31
+        CALL INCSTR('SNAME',PSNAME,'REQ',' ')
+        IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+        OPSTMP%PSNAME = PSNAME                                            40.31
+        OPSTMP%PSTYPE = 'P'                                               40.31
+        MIP  = 0
+        OPSTMP%MIP = MIP                                                  40.31
+#endif
+        CALL INKEYW ('STA', ' ')
+        IF (KEYWIS('FILE')) THEN
+          IOSTAT = 0
+          NDS    = 0
+          PP     = .TRUE.
+          CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
+          CALL FOR (NDS, FILENM, 'OF', IOSTAT)                            10.31
+          IF (STPNOW()) RETURN                                            34.01
+        ELSE
+          PP = .FALSE.
+        ENDIF
+        FRST%X = 0.                                                       40.31
+        FRST%Y = 0.                                                       40.31
+        NULLIFY(FRST%NEXTXY)                                              40.31
+        CURR => FRST                                                      40.31
+        DO
+          IF (PP) THEN
+            IERR = 0                                                      10.18
+            CALL REFIXY (NDS, XP, YP, IERR)                               10.18
+            IF (IERR.EQ.-1) GOTO 47
+            IF (IERR.EQ.-2) THEN
+              CALL MSGERR (2, 'Error reading point coord. from file')
+              GOTO 800
+            ENDIF
+          ELSE
+            CALL READXY ('XP', 'YP', XP, YP, 'REP', -1.E10, -1.E10)
+            IF (XP .LT. -0.9E10) GOTO 47
+          ENDIF
+          MIP = MIP+1
+          ALLOCATE(TMP)                                                   40.31
+          TMP%X = XP                                                      40.31
+          TMP%Y = YP                                                      40.31
+          NULLIFY(TMP%NEXTXY)                                             40.31
+          CURR%NEXTXY => TMP                                              40.31
+          CURR => TMP                                                     40.31
+        ENDDO
+#ifdef SWAN_MODEL
+  47    ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP%XP(MIP))                          40.31
+        ALLOCATE(OPSDATZ_MOD(ng)%OPSTMP%YP(MIP))                          40.31
+!        ALLOCATE(OPSDATZ_MOD(ng)%COPS)
+!        ALLOCATE(OPSDATZ_MOD(ng)%FOPS)
+        CURR => FRST%NEXTXY                                               40.31
+        DO JJ = 1, MIP                                                    40.31
+           OPSDATZ_MOD(ng)%OPSTMP%XP(JJ) = CURR%X                         40.31
+           OPSDATZ_MOD(ng)%OPSTMP%YP(JJ) = CURR%Y                         40.31
+           CURR => CURR%NEXTXY                                            40.31
+        END DO                                                            40.31
+        DEALLOCATE(TMP)                                                   40.31
+!       ***** store number of output points *****
+        OPSDATZ_MOD(ng)%OPSTMP%MIP = MIP                                  40.31
+        IF (MIP .EQ. 0) CALL MSGERR (2, 'No output points found')         10.32
+        NULLIFY(OPSDATZ_MOD(ng)%OPSTMP%NEXTOPS)                           40.31
+        IF ( .NOT.LOPS ) THEN                                             40.31
+           OPSDATZ_MOD(ng)%FOPS = OPSDATZ_MOD(ng)%OPSTMP                  40.31
+           OPSDATZ_MOD(ng)%COPS => OPSDATZ_MOD(ng)%FOPS                   40.31
+           LOPS = .TRUE.                                                  40.31
+        ELSE                                                              40.31
+           OPSDATZ_MOD(ng)%COPS%NEXTOPS => OPSDATZ_MOD(ng)%OPSTMP         40.31
+           OPSDATZ_MOD(ng)%COPS => OPSDATZ_MOD(ng)%OPSTMP                 40.31
+        END IF                                                            40.31
+#else
+  47    ALLOCATE(OPSTMP%XP(MIP))                                          40.31
+        ALLOCATE(OPSTMP%YP(MIP))                                          40.31
+        CURR => FRST%NEXTXY                                               40.31
+        DO JJ = 1, MIP                                                    40.31
+           OPSTMP%XP(JJ) = CURR%X                                         40.31
+           OPSTMP%YP(JJ) = CURR%Y                                         40.31
+           CURR => CURR%NEXTXY                                            40.31
+        END DO                                                            40.31
+        DEALLOCAT
