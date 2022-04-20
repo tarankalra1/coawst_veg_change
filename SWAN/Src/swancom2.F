@@ -1367,7 +1367,11 @@
            VEGDRL_CAL   = MIN(EXP(-0.0138*Q)/(Q**0.3),MAX_EPS)
         ENDIF 
       ELSE IF ( DEP2(KCGRD(1)).LT.SLAYH ) THEN
-                  VEGDRL_CAL   = 1.95
+        IF    ( VEGDRL(1).eq.1. ) THEN 
+           VEGDRL_CAL   = 1.
+        ELSEIF( VEGDRL(1).eq.2. ) THEN        
+           VEGDRL_CAL   = 1.95
+        ENDIF 
       END IF 
 !
 !     --- store values for output, compute drag coefficient in vegetation

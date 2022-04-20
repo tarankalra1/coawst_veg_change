@@ -1531,7 +1531,7 @@
           PSNAME = 'NPHTGRID'                                             40.55
 #ifdef COAWST_COUPLING
           CALL SINPGR (IGRD, IGR2, PSNAME, ng)
-          VARNPL = .TRUE.                                                   40.55
+          VARNPH = .TRUE.                                                   40.55
           IF (JNPHT2.LE.1) THEN                                             40.55
             MCMVAR = MCMVAR + 2                                             40.55
             JNPHT2 = MCMVAR - 1                                             40.55
@@ -2841,11 +2841,12 @@
 !
 ! ==========================================
 !
-!   VEGCtation   < [iveg]  [height]  [diamtr]  [nstems]  [drag] [ym] >
+!   VEGCtation   < [iveg]  [height]  [diamtr]  [nstems]  [drag] >
 !
 ! ==========================================
 !
       IF (KEYWIS ('VEGC')) THEN
+!        IVEG  = 3
         CALL ININTG ('IVEG', IVEG, 'STA', 1)                        
         ILMAX = 0
         FRSTV%H = 0.
