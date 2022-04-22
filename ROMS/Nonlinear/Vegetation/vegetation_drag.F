@@ -407,7 +407,7 @@
       CALL bc_r2d_tile (ng, tile,                                       &
      &                          LBi, UBi, LBj, UBj,                     &
                                 plant_hght_flex)
-      CALL mp_exchange3d (ng, tile, iNLM,                               &
+      CALL mp_exchange2d (ng, tile, iNLM,  1,                           &
      &                    LBi, UBi, LBj, UBj,                           &
      &                    NghostPoints,                                 &
      &                    EWperiodic(ng), NSperiodic(ng),               &
