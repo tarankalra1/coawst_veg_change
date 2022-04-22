@@ -64,6 +64,7 @@
 !  idCdvg         Id to output spectral Cd from waves vegetation       !
 !  idvgls         Id to output length scale change due to veg.         !
 !  idvtke         Id to output tke change due to veg.                  !
+!  idhgtf         Id to output height change due to flex.              !
 !                                                                      !
 !  Marsh wave induced erosion Output:                                  !
 !  ==========================                                          !
@@ -98,6 +99,9 @@
 !
 #ifdef VEG_STREAMING 
       integer :: idWdvg, idCdvg
+#endif 
+#ifdef VEG_FLEX
+      integer :: idhgtf
 #endif 
 #if defined VEG_DRAG || defined VEG_BIOMASS  
       integer, allocatable :: idvprp(:)

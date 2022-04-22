@@ -9197,6 +9197,15 @@
   'w3dvar'
   1.0d0
 
+'plant_hght_flex'                                  ! Output
+  'flex veg. modification'
+  'meter'                                          ! [m]
+  'plant_hght_flex, scalar, series'
+  'ocean_time'
+  'idhgtf'
+  'r2dvar'
+  1.0d0
+
 !
 !------------------------------------------------------------------------------
 ! Marsh dynamics variables.

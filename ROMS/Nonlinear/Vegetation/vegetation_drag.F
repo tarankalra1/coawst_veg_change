@@ -61,6 +61,7 @@
      &                        VEG(ng) % plant,                          &
 # ifdef VEG_FLEX
      &                        VEG(ng) % bend,                           &
+     &                        VEG(ng) % plant_hght_flex,                &
 # endif
 # if defined MARSH_DYNAMICS && defined MARSH_RETREAT
      &                        VEG(ng) % marsh_mask,                     &
@@ -89,6 +90,7 @@
      &                              plant,                              &
 # ifdef VEG_FLEX
      &                              bend,                               &
+     &                              plant_hght_flex,                    &
 # endif
 # if defined MARSH_DYNAMICS && defined MARSH_RETREAT
      &                              marsh_mask,                         &
@@ -125,6 +127,7 @@
       real(r8), intent(inout) :: plant(LBi:,LBj:,:,:)
 #  ifdef VEG_FLEX
       real(r8), intent(inout) :: bend(LBi:,LBj:,:)
+      real(r8), intent(inout) :: plant_hght_flex(LBi:,LBj:)
 #  endif
 # if defined MARSH_DYNAMICS && defined MARSH_RETREAT
       real(r8), intent(inout) :: marsh_mask(LBi:,LBj:)
@@ -143,6 +146,7 @@
       real(r8), intent(inout) :: plant(LBi:UBi,LBj:UBj,NVEG,NVEGP)
 #  ifdef VEG_FLEX
       real(r8), intent(inout) :: bend(LBi:UBi,LBj:UBj,N(ng),NVEG)
+      real(r8), intent(inout) :: plant_hght_flex(LBi:UBi,LBj:UBj)
 #  endif
 # if defined MARSH_DYNAMICS && defined MARSH_RETREAT 
       real(r8), intent(inout) :: marsh_mask(LBi:UBi,LBj:UBj)
@@ -270,7 +274,7 @@
 ! Effective blade length and save it
 !
               plant_height_eff=cflex*plant(i,j,iveg,phght)
-              plant(i,j,iveg,phght)=plant_height_eff
+              plant_hght_flex(i,j)=plant_height_eff
 !
 ! Blade bending angle
 !
@@ -392,12 +396,22 @@
      &                          rv_veg(:,:,:))
       END IF
 !
-#  if defined MARSH_RETREAT || defined VEG_FLEX 
+#  if defined MARSH_RETREAT
       DO ivpr=1,NVEGP
         CALL bc_r3d_tile (ng, tile,                                     &
      &                          LBi, UBi, LBj, UBj, 1, NVEG,            &
      &                          plant(:,:,:,ivpr))
       END DO
+#  endif 
+#  if defined VEG_FLEX 
+      CALL bc_r2d_tile (ng, tile,                                       &
+     &                          LBi, UBi, LBj, UBj,                     &
+                                plant_hght_flex)
+      CALL mp_exchange3d (ng, tile, iNLM,                               &
+     &                    LBi, UBi, LBj, UBj,                           &
+     &                    NghostPoints,                                 &
+     &                    EWperiodic(ng), NSperiodic(ng),               &
+     &                    plant_hght_flex)
 #  endif
 !
 # ifdef DISTRIBUTE

@@ -42,6 +42,31 @@
       END DO
 # endif
 !
+# ifdef VEG_FLEX 
+!
+!  Write out height modification due to flexibility.
+!
+      IF (Hout(idhgtf,ng)) THEN
+        scale=1.0_r8
+        gtype=gfactor*r2dvar
+        status=nf_fwrite2d(ng, iNLM, HIS(ng)%ncid, HIS(ng)%Vid(idhgtf), &
+     &                     HIS(ng)%Rindex, gtype,                       &
+     &                     LBi, UBi, LBj, UBj, scale,                   &
+# ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+# endif
+     &                     VEG(ng)%plant_hght_flex)
+        IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,10) TRIM(Vname(1,idhgtf)), HIS(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+      END IF
+# endif 
+!
 # ifdef VEG_STREAMING
 !
 !  Write out wave dissipation due to vegetation

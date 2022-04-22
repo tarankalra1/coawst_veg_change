@@ -281,7 +281,16 @@
                 RETURN
               END IF
               Npts=load_l(Nval, Cval, Ngrids, Hout(idvgls,:))
-#endif                                         
+#endif
+#if defined VEG_FLEX 
+            CASE ('Hout(idhgtf)')
+              IF (idhgtf.eq.0) THEN
+                IF (Master) WRITE (out,30) 'idhgtf'
+                exit_flag=5
+                RETURN
+              END IF
+              Npts=load_l(Nval, Cval, Ngrids, Hout(idhgtf,:))
+#endif
 #ifdef VEG_STREAMING
             CASE ('Hout(idWdvg)')
               IF ((idWdvg).eq.0) THEN

@@ -46,6 +46,11 @@
             CASE ('idCdvg')
               idCdvg=varid
 #endif 
+#if defined VEG_FLEX
+            CASE ('idhgtf')
+              idhgtf=varid
+#endif 
+	       
 ! 
 #if defined MARSH_DYNAMICS
             CASE ('idTims')
