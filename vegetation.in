@@ -93,6 +93,7 @@ Hout(ipbgbm)   == F       ! Plant_bgb          Below ground plant biomass
 Hout(idWdvg)   == T       ! Dissip_veg         Wave dissipation due to vegetation
 Hout(idvtke)   == T       ! tke_veg            TKE change due to vegetation
 Hout(idvgls)   == T       ! gls_veg            GLS (length scale) change due to vegetation 
+Hout(idhgtf)   == T       ! hght mod.          Height modified due to flex. veg. 
 !
 Hout(idTims)   == F       ! marsh_mask         Store masking marsh from marsh cells
 Hout(idTtot)   == F       ! Thrust_total       Total thrust from all direction due to waves
