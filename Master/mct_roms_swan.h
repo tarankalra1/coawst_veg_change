@@ -955,7 +955,7 @@
       DO j=JstrR,JendR
         DO i=IstrR,IendR
           ij=ij+1
-          cff=VEG(ng)%plant_hght_eff(i,j)
+          cff=VEG(ng)%plant_hght_flex(i,j)
           A(ij)=cff
         END DO
       END DO
