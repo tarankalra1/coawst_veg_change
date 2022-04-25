@@ -105,6 +105,7 @@
       USE mod_scalars
       USE mod_vegetation
       USE mod_vegarr
+      USE bc_2d_mod, ONLY: bc_r2d_tile
       USE bc_3d_mod, ONLY: bc_r3d_tile
       USE exchange_2d_mod
       USE exchange_3d_mod
