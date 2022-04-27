@@ -1324,6 +1324,7 @@
       SLAYH      = VEGHGT_LOC
 
       IF ( DEP2(KCGRD(1)).GT.SLAYH ) THEN
+#     ifdef VEG_FLEX_SWAN 
 !
 !       Effective blade length from Luhar and Nepf 2016.
 !          
@@ -1347,6 +1348,9 @@
         CFF3       = MIN( ( 0.7*(CAUCHY_NUM*LAYH_RAT)**(-0.21) ),  
      &                               MAX_EPS  )
         CFF3       = MIN(CFF3,1.0) ! to avoid NaN when Cauchy is zero 
+#       else
+        CFF3       = 1.0
+#       endif 
 !
 ! Keulegan Carpenter number. 
 !
